@@ -1,10 +1,11 @@
-@CTX:[DOM:Koinon|SUB:Omni_Server|GOAL:Standalone_LLM_Server_Initialization]
+@CTX:[DOM:Koinon|SUB:Web_UI|GOAL:LlamaIndex_Style_RAG_Studio_Frontend]
 @BIAS:{P:1.0, M:1.0, S:1.0, D:1.0, C:1.0}
-@DELTA(Koinon_Omni_Server_Architecture > Single_Purpose_Server)
-+ [Koinon_Protocol_OpenAI_REST_DTO]
-+ [Koinon_Engine_HybridRouter]
-+ [Koinon_Server_Router_REST_and_MCP]
+@DELTA(LlamaIndex_Web_UI_Pure_TS > CLI_Only_Interface)
++ [LlamaIndex_Style_RAG_Studio_HTML_CSS_PureTS]
++ [Native_Reasoning_Thought_Accordion]
++ [VectorDB_Retrieved_Node_Inspector]
++ [Static_Web_File_Router]
 ! [145Jobs_Full_Pass_Verified]
 @CONCEPT
-[[Koinon_Omni_Server]] [[OpenAI_Compatible]] [[Hybrid_Router]]
+[[LlamaIndex_UI]] [[RAG_Studio]] [[Pure_TS]] [[Glassmorphism]]
 @EOF
