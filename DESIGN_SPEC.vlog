@@ -1,11 +1,10 @@
-@CTX:[DOM:Koinon|SUB:Web_UI|GOAL:LlamaIndex_Style_RAG_Studio_Frontend]
+@CTX:[DOM:Koinon|SUB:Documentation|GOAL:Full_Integrated_Design_Document_Suite]
 @BIAS:{P:1.0, M:1.0, S:1.0, D:1.0, C:1.0}
-@DELTA(LlamaIndex_Web_UI_Pure_TS > CLI_Only_Interface)
-+ [LlamaIndex_Style_RAG_Studio_HTML_CSS_PureTS]
-+ [Native_Reasoning_Thought_Accordion]
-+ [VectorDB_Retrieved_Node_Inspector]
-+ [Static_Web_File_Router]
+@DELTA(Full_Design_Doc_Suite > Fragmented_Notes)
++ [Koinon_System_Architecture_Design_Doc]
++ [Koinon_API_Specification_Doc]
++ [Koinon_Web_UI_Design_Doc]
 ! [145Jobs_Full_Pass_Verified]
 @CONCEPT
-[[LlamaIndex_UI]] [[RAG_Studio]] [[Pure_TS]] [[Glassmorphism]]
+[[Architecture_Design]] [[API_Specification]] [[Web_UI_Design]]
 @EOF

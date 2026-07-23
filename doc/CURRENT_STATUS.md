@@ -4,10 +4,10 @@
 2026-07-23
 
 ## 1. 完了した作業項目
-- **LlamaIndex スタイル RAG Studio Web UI の配備 (HTML5 + Vanilla CSS + Pure TS)**:
-  - フロントエンドパス: `/home/pc241139/sandbox/koinon/web/` (`index.html`, `style.css`, `app.ts`, `app.js`)
-  - **UI/UX 設計**: Dark Theme, Glassmorphism, Fira Code / Inter フォント, リアルタイム思考プロセス (`Thinking Process`) アコーディオン、VectorDB 類似度ノード表示インスペクター。
-- **Koinon HTTP Router への静的ファイル配信機能統合**:
-  - `GET /` または `GET /index.html`, `/style.css`, `/app.js` によるスタンドアロン Web UI サーブをサポート。
-- **検証テストスイート (100% PASS)**:
-  - `test/ServerTest.lean`: REST API (`/v1/models`, `/v1/chat/completions`) 並びに Web UI ルート (`/`) のサーブ動作が 100% 成功。
+- **統合設計ドキュメントの作成 ＆ 配備 (試案1完了)**:
+  - [`doc/Koinon_システムアーキテクチャ設計書.md`](file:///home/pc241139/sandbox/koinon/doc/Koinon_システムアーキテクチャ設計書.md): レイヤー構成、Mermaid トポロジー、Nomos ガバナンス。
+  - [`doc/Koinon_API仕様書.md`](file:///home/pc241139/sandbox/koinon/doc/Koinon_API仕様書.md): OpenAI REST API DTO、MCP JSON-RPC 2.0、Web 静的ファイルサーブ。
+  - [`doc/Koinon_Web_UI設計書.md`](file:///home/pc241139/sandbox/koinon/doc/Koinon_Web_UI設計書.md): LlamaIndex UI/UX デザインシステム、Pure TS クラス構造。
+  - [`PROJECT_OVERVIEW.md`](file:///home/pc241139/sandbox/koinon/PROJECT_OVERVIEW.md): プロジェクト概要テキスト。
+- **検証テストスイート 100% PASS**:
+  - `test/ServerTest.lean` による OpenAI REST ＆ LlamaIndex Web UI サーブルーティングの形式検証成功。
