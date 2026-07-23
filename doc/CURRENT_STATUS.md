@@ -4,10 +4,9 @@
 2026-07-23
 
 ## 1. 完了した作業項目
-- **統合設計ドキュメントの作成 ＆ 配備 (試案1完了)**:
-  - [`doc/Koinon_システムアーキテクチャ設計書.md`](file:///home/pc241139/sandbox/koinon/doc/Koinon_システムアーキテクチャ設計書.md): レイヤー構成、Mermaid トポロジー、Nomos ガバナンス。
-  - [`doc/Koinon_API仕様書.md`](file:///home/pc241139/sandbox/koinon/doc/Koinon_API仕様書.md): OpenAI REST API DTO、MCP JSON-RPC 2.0、Web 静的ファイルサーブ。
-  - [`doc/Koinon_Web_UI設計書.md`](file:///home/pc241139/sandbox/koinon/doc/Koinon_Web_UI設計書.md): LlamaIndex UI/UX デザインシステム、Pure TS クラス構造。
-  - [`PROJECT_OVERVIEW.md`](file:///home/pc241139/sandbox/koinon/PROJECT_OVERVIEW.md): プロジェクト概要テキスト。
-- **検証テストスイート 100% PASS**:
-  - `test/ServerTest.lean` による OpenAI REST ＆ LlamaIndex Web UI サーブルーティングの形式検証成功。
+- **3 段階ハイブリッド検証テストスイートの構築・完備 (100% PASS)**:
+  - **Phase 1: Nomos Blackbox State Laws Validation**: `Nomos.Agent` アダプターによる状態初期化・遷移パターンのアサーション検証。
+  - **Phase 2: Universal Boundary Resilience**: 不正 JSON、未定義モデル名、未定義エンドポイントに対するブラックボックス堅牢性テスト。
+  - **Phase 3: Physical Binary Execution**: ビルド済みの `koinon` 物理バイナリを子プロセスとして起動・初期化メッセージの出力を直接検証。
+- **全検証結果 (100% PASS)**:
+  - `lake exe test_driver` を物理実行し、全 151 ジョブのコンパイルおよび Phase 1〜3 の全テストケースが 100% 成功。

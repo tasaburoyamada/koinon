@@ -1,10 +1,10 @@
-@CTX:[DOM:Koinon|SUB:Documentation|GOAL:Full_Integrated_Design_Document_Suite]
+@CTX:[DOM:Koinon|SUB:Verification|GOAL:Three_Phase_Hybrid_Blackbox_Test_Suite]
 @BIAS:{P:1.0, M:1.0, S:1.0, D:1.0, C:1.0}
-@DELTA(Full_Design_Doc_Suite > Fragmented_Notes)
-+ [Koinon_System_Architecture_Design_Doc]
-+ [Koinon_API_Specification_Doc]
-+ [Koinon_Web_UI_Design_Doc]
-! [145Jobs_Full_Pass_Verified]
+@DELTA(Three_Phase_Hybrid_Test_Suite > Unit_Test_Only)
++ [Phase1_Nomos_Agent_State_Laws_Verified]
++ [Phase2_Universal_Boundary_Resilience_Passed]
++ [Phase3_Physical_Binary_Execution_Passed]
+! [100Percent_Pass_Verified]
 @CONCEPT
-[[Architecture_Design]] [[API_Specification]] [[Web_UI_Design]]
+[[Nomos_Laws]] [[Boundary_Resilience]] [[Physical_Binary_Test]]
 @EOF

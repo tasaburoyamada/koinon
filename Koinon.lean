@@ -7,6 +7,8 @@ import Koinon.Server.Router
 namespace Koinon
 
 
+
+
 /-- Koinon Omni-Server バージョン情報 -/
 def version : String := "0.1.0-alpha"
 

@@ -11,6 +11,9 @@ require «Lyceum» from "../Lyceum"
 @[default_target]
 lean_lib «Koinon» where
 
+lean_lib «test» where
+  globs := #[.submodules `test]
+
 @[default_target]
 lean_exe «koinon» where
   root := `Main
@@ -18,3 +21,5 @@ lean_exe «koinon» where
 lean_exe «server_test» where
   root := `test.ServerTest
 
+lean_exe «test_driver» where
+  root := `test.TestDriver
