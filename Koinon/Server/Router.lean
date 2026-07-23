@@ -18,7 +18,16 @@ deriving Repr, Inhabited
 
 /-- REST API & MCP リクエストを処理するメインルーター -/
 def handleRoute (method : String) (path : String) (body : String) (db : Lyceum.Memory.VectorDB) : IO HttpResponse := do
-  if method == "GET" && path == "/v1/models" then
+  if method == "GET" && (path == "/" || path == "/index.html") then
+    let content ← IO.FS.readFile "/home/pc241139/sandbox/koinon/web/index.html"
+    return { status := 200, contentType := "text/html", body := content }
+  else if method == "GET" && path == "/style.css" then
+    let content ← IO.FS.readFile "/home/pc241139/sandbox/koinon/web/style.css"
+    return { status := 200, contentType := "text/css", body := content }
+  else if method == "GET" && (path == "/app.js" || path == "/app.ts") then
+    let content ← IO.FS.readFile "/home/pc241139/sandbox/koinon/web/app.js"
+    return { status := 200, contentType := "application/javascript", body := content }
+  else if method == "GET" && path == "/v1/models" then
     let models : ModelListResponse := {
       data := [
         { id := "koinon-omni-gemma" },
@@ -26,6 +35,7 @@ def handleRoute (method : String) (path : String) (body : String) (db : Lyceum.M
       ]
     }
     return { status := 200, body := (toJson models).compress }
+
   else if method == "POST" && path == "/v1/chat/completions" then
     match Json.parse body with
     | Except.ok j =>

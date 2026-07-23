@@ -24,8 +24,15 @@ def testServerRouting : IO UInt32 := do
     IO.eprintln s!"  [FAIL] /v1/chat/completions failed: {resChat.body}"
     return 1
 
-  IO.println "  [PASS] Server Router & OpenAI Protocol Compliance verified."
+  -- 3. Test GET / (LlamaIndex Web UI)
+  let resWeb ← handleRoute "GET" "/" "" db
+  if resWeb.status != 200 || !resWeb.body.contains "Koinon Studio" then
+    IO.eprintln s!"  [FAIL] Web UI route failed: {resWeb.status}"
+    return 1
+
+  IO.println "  [PASS] Server Router, Web UI & OpenAI Protocol Compliance verified."
   return 0
+
 
 end Koinon.Test.ServerTest
 
