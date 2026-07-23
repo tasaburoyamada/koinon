@@ -1,0 +1,10 @@
+@CTX:[DOM:Koinon|SUB:Omni_Server|GOAL:Standalone_LLM_Server_Initialization]
+@BIAS:{P:1.0, M:1.0, S:1.0, D:1.0, C:1.0}
+@DELTA(Koinon_Omni_Server_Architecture > Single_Purpose_Server)
++ [Koinon_Protocol_OpenAI_REST_DTO]
++ [Koinon_Engine_HybridRouter]
++ [Koinon_Server_Router_REST_and_MCP]
+! [145Jobs_Full_Pass_Verified]
+@CONCEPT
+[[Koinon_Omni_Server]] [[OpenAI_Compatible]] [[Hybrid_Router]]
+@EOF
