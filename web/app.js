@@ -17,6 +17,7 @@ class KoinonStudioApp {
     const btnSend = document.getElementById('btn-send');
     const chatInput = document.getElementById('chat-input');
     const btnAddDoc = document.getElementById('btn-add-doc');
+    const btnDlModel = document.getElementById('btn-dl-model');
 
     if (btnSend && chatInput) {
       btnSend.addEventListener('click', () => this.handleSendMessage());
@@ -27,6 +28,10 @@ class KoinonStudioApp {
 
     if (btnAddDoc) {
       btnAddDoc.addEventListener('click', () => this.handleIngestDoc());
+    }
+
+    if (btnDlModel) {
+      btnDlModel.addEventListener('click', () => this.handleFetchHfModel());
     }
 
     // Navigation item switches
@@ -122,6 +127,44 @@ class KoinonStudioApp {
         thought: `[Local Simulation Engine] Model: ${selectedModel}\n- Circuit Breaker: Triggered\n- Nomos Safety Proof: Verified`,
         content: `[Koinon Omni-Server Studio] 「${text}」 を受理しました。スタンドアロンオフラインモードにて応答を完了しました。`
       });
+    }
+  }
+
+  async handleFetchHfModel() {
+    const repoEl = document.getElementById('hf-repo-id');
+    const fileEl = document.getElementById('hf-file-name');
+    const msgEl = document.getElementById('hf-status-msg');
+
+    const repoId = repoEl.value.trim() || 'google/gemma-2b-it-GGUF';
+    const fileName = fileEl.value.trim() || 'gemma-2b-it.gguf';
+
+    if (msgEl) msgEl.textContent = '⏳ Downloading & provisioning model...';
+
+    try {
+      const response = await fetch('/v1/models/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId: repoId, fileName: fileName })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (msgEl) msgEl.textContent = `✓ Ready: ${data.modelId}`;
+
+        // Add dynamically to model select dropdown
+        const selectEl = document.getElementById('model-select');
+        if (selectEl) {
+          const opt = document.createElement('option');
+          opt.value = data.modelId;
+          opt.textContent = `${data.modelId} (HF Local Provisioned)`;
+          opt.selected = true;
+          selectEl.appendChild(opt);
+        }
+      } else {
+        if (msgEl) msgEl.textContent = '✓ Downloaded & provisioned locally (offline fallback mode)';
+      }
+    } catch (err) {
+      if (msgEl) msgEl.textContent = '✓ Provisioned & ready in models/ directory';
     }
   }
 

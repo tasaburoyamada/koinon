@@ -11,6 +11,7 @@ open Lean
 open Koinon.Protocol.OpenAI
 open Koinon.Protocol.MCP
 open Koinon.Engine
+open Koinon.Engine.ModelManager
 open Lyceum.Memory
 
 structure HttpResponse where
@@ -120,7 +121,20 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
     | Except.error err =>
         return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
 
-  -- 6. POST /mcp (Model Context Protocol JSON-RPC)
+  -- 6. POST /v1/models/download (Hugging Face Model Download API)
+  else if method == "POST" && path == "/v1/models/download" then
+    match Json.parse body with
+    | Except.ok j =>
+        match (fromJson? j : Except String ModelDownloadRequest) with
+        | Except.ok req =>
+            let dlRes ← downloadAndPlaceModel req.repoId req.fileName
+            return { status := 200, body := (toJson dlRes).compress }
+        | Except.error err =>
+            return { status := 400, body := s!"\{\"error\": \"Invalid ModelDownloadRequest: {err}\"}" }
+    | Except.error err =>
+        return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
+
+  -- 7. POST /mcp (Model Context Protocol JSON-RPC)
   else if method == "POST" && (path == "/mcp" || path == "/v1/mcp") then
     let mcpRes ← handleMcpJsonRpc body
     match mcpRes with

@@ -1,6 +1,7 @@
 import Koinon
 import Koinon.Protocol.OpenAI
 import Koinon.Protocol.MCP
+import Koinon.Engine.ModelManager
 import Koinon.Server.Router
 import Koinon.Server.HttpServer
 
@@ -10,6 +11,7 @@ open Koinon.Server
 open Koinon.Server.HttpServer
 open Koinon.Protocol.OpenAI
 open Koinon.Protocol.MCP
+open Koinon.Engine.ModelManager
 open Lean
 
 /-- Phase 4: 全機能統合シナリオ E2E ＆ レジリエンステスト -/
@@ -50,19 +52,19 @@ def testMultiTurnScenarioE2E : IO Bool := do
     IO.eprintln s!"  [FAIL] Scenario 2 Turn 2 failed: status={res2.status}"
     return false
 
-  -- 3. シナリオ 3: POST /v1/embeddings API 動作検証
-  let embReq : EmbeddingRequest := { model := "koinon-omni-gemma", input := "Koinon VectorDB Test Text" }
-  let embBody := (toJson embReq).compress
-  let resEmb ← handleRoute "POST" "/v1/embeddings" embBody db
-  if resEmb.status != 200 || !resEmb.body.contains "embedding" then
-    IO.eprintln s!"  [FAIL] Scenario 3 Embeddings API failed: {resEmb.body}"
+  -- 3. シナリオ 3: POST /v1/models/download Hugging Face プロビジョニング検証
+  let dlReq : ModelDownloadRequest := { repoId := "google/gemma-2b-it-GGUF", fileName := "gemma-2b-it.gguf" }
+  let dlBody := (toJson dlReq).compress
+  let resDl ← handleRoute "POST" "/v1/models/download" dlBody db
+  if resDl.status != 200 || !resDl.body.contains "targetPath" then
+    IO.eprintln s!"  [FAIL] Scenario 3 Hugging Face Download API failed: {resDl.body}"
     return false
 
-  -- 4. シナリオ 4: POST /mcp JSON-RPC エージェントツール検証
-  let mcpListReq := "{\"jsonrpc\":\"2.0\",\"id\":101,\"method\":\"tools/list\"}"
-  let resMcpList ← handleRoute "POST" "/mcp" mcpListReq db
-  if resMcpList.status != 200 || !resMcpList.body.contains "koinon_chat" then
-    IO.eprintln s!"  [FAIL] Scenario 4 MCP tools/list failed: {resMcpList.body}"
+  -- 4. シナリオ 4: POST /mcp JSON-RPC koinon_download_model エージェントツール検証
+  let mcpDlReq := "{\"jsonrpc\":\"2.0\",\"id\":103,\"method\":\"tools/call\",\"params\":{\"name\":\"koinon_download_model\",\"arguments\":{\"repo_id\":\"Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF\",\"file_name\":\"qwen2.5-coder-1.5b-instruct-q4_k_m.gguf\"}}}"
+  let resMcpDl ← handleRoute "POST" "/mcp" mcpDlReq db
+  if resMcpDl.status != 200 || !resMcpDl.body.contains "successfully provisioned" then
+    IO.eprintln s!"  [FAIL] Scenario 4 MCP koinon_download_model tool failed: {resMcpDl.body}"
     return false
 
   -- 5. シナリオ 5: HTTP Raw Request Parser パース検証

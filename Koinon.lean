@@ -3,6 +3,7 @@ import Nomos.Laws
 import Koinon.Protocol.OpenAI
 import Koinon.Protocol.MCP
 import Koinon.Engine.HybridRouter
+import Koinon.Engine.ModelManager
 import Koinon.Server.Router
 import Koinon.Server.HttpServer
 

@@ -99,6 +99,14 @@
         </div>
 
         <div class="rag-card">
+          <h3>Hugging Face Model Store</h3>
+          <input type="text" id="hf-repo-id" placeholder="Repo ID (e.g. google/gemma-2b-it-GGUF)..." style="width:100%; padding:8px; margin-bottom:8px; background:var(--bg-primary); border:1px solid var(--border-color); color:#fff; border-radius:6px; font-size:12px;" />
+          <input type="text" id="hf-file-name" placeholder="File Name (e.g. gemma-2b-it.gguf)..." style="width:100%; padding:8px; margin-bottom:8px; background:var(--bg-primary); border:1px solid var(--border-color); color:#fff; border-radius:6px; font-size:12px;" />
+          <button class="btn-send" id="btn-dl-model" style="width:100%; padding:8px; font-size:12px;">Fetch HF Model</button>
+          <div id="hf-status-msg" style="font-size:11px; margin-top:6px; color:var(--accent-emerald);"></div>
+        </div>
+
+        <div class="rag-card">
           <h3>Retrieved Nodes</h3>
           <div id="retrieved-nodes">
             <div class="vector-node">

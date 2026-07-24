@@ -1,10 +1,12 @@
 import Lean
 import Lean.Data.Json
 import Koinon.Protocol.OpenAI
+import Koinon.Engine.ModelManager
 
 namespace Koinon.Protocol.MCP
 
 open Lean
+open Koinon.Engine.ModelManager
 
 /-- MCP JSON-RPC 2.0 リクエスト -/
 structure McpRequest where
@@ -54,8 +56,26 @@ def getAvailableTools : List McpTool := [
       ]),
       ("required", Json.arr #[Json.str "query"])
     ]
+  },
+  {
+    name := "koinon_download_model",
+    description := "Hugging Face から最新の GGUF/LLM モデルを取得・自動配置するエージェントツール",
+    inputSchema := Json.mkObj [
+      ("type", Json.str "object"),
+      ("properties", Json.mkObj [
+        ("repo_id", Json.mkObj [("type", Json.str "string")]),
+        ("file_name", Json.mkObj [("type", Json.str "string")])
+      ]),
+      ("required", Json.arr #[Json.str "repo_id", Json.str "file_name"])
+    ]
   }
 ]
+
+/-- Json オブジェクトから文字列フィールドを安全に取得 -/
+def extractJsonStrField (j : Json) (fieldName : String) (defaultVal : String) : String :=
+  match j.getObjVal? fieldName with
+  | Except.ok (Json.str s) => s
+  | _ => defaultVal
 
 /-- MCP JSON-RPC リクエストを判定・処理 -/
 def handleMcpJsonRpc (rawJson : String) : IO (Option String) := do
@@ -84,18 +104,29 @@ def handleMcpJsonRpc (rawJson : String) : IO (Option String) := do
         }
         return some (toJson res).compress
       else if req.method == "tools/call" then
+        let resText ← match req.params with
+          | some p =>
+            match p.getObjVal? "name" with
+            | Except.ok (Json.str "koinon_download_model") =>
+              let argsJson := match p.getObjVal? "arguments" with
+                | Except.ok aj => aj
+                | _ => Json.null
+              let repoId := extractJsonStrField argsJson "repo_id" "google/gemma-2b-it-GGUF"
+              let fileName := extractJsonStrField argsJson "file_name" "gemma-2b-it.gguf"
+              let dlRes ← downloadAndPlaceModel repoId fileName
+              pure s!"[Koinon MCP Agent Tool] {dlRes.message}"
+            | _ => pure s!"[Koinon MCP Agent Tool] Executed '{req.method}' successfully."
+          | none => pure s!"[Koinon MCP Agent Tool] Executed '{req.method}' successfully."
+
         let resContent := Json.mkObj [
           ("content", Json.arr #[
             Json.mkObj [
               ("type", Json.str "text"),
-              ("text", Json.str s!"[Koinon MCP Agent Tool] Executed '{req.method}' successfully.")
+              ("text", Json.str resText)
             ]
           ])
         ]
-        let res : McpResponse := {
-          id := reqId,
-          result := some resContent
-        }
+        let res : McpResponse := { id := reqId, result := some resContent }
         return some (toJson res).compress
       else if req.method == "initialize" then
         let initRes := Json.mkObj [

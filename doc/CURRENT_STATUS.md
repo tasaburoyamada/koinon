@@ -4,14 +4,19 @@
 2026-07-24
 
 ## 1. 完了した作業項目
-- **物理 Socket HTTP サーバーの実装 (`Koinon.Server.HttpServer`)**:
-  - Raw HTTP リクエストパーサー (`parseHttpRequest`)、HTTP/1.1 レスポンスビルダー、ソケットバインド/リスナー (`startHttpServer`) を完全実装。`--server-daemon --port 8080` での物理待ち受けが可能。
-- **Gemma GGUF LeanTensor 物理演算バインド (`Koinon.Engine.HybridRouter`)**:
-  - `LeanTensor.Math.TiledGEMM` および `LeanTensor.Math.Ops` の AVX-512 カーネルを用いた Gemma GGUF ネイティブテンソル推論評価回路 (`runGemmaNativeTensor`) を結合。
-- **VectorDB RAG ドキュメントインジェクション & コサイン類似度セマンティック検索**:
-  - `POST /v1/rag/ingest` エンドポイントを新設し、受領したドキュメントを `Lyceum.Memory.VectorDB` へインデックス追加。チャット受領時にコサイン類似度上位ノードをプロンプトへ全自動 RAG 注入。
+- **Hugging Face Hub モデルプロビジョニングエンジン (`Koinon.Engine.ModelManager`)**:
+  - リポジトリ ID とファイル名から HF Hub 直リンク URL を動的生成し、`models/` ディレクトリへ安全に配置・設定メタデータ (`.meta.json`) を生成するダウンローダーを新設。
+- **OpenAI 互換 REST API (`POST /v1/models/download`)**:
+  - 外部クライアントや Web UI から任意の GGUF/LLM モデルのダウンロード・配置要求を受理するエンドポイントを追加。
+- **MCP Agent Tool (`koinon_download_model`) 統合**:
+  - `Koinon.Protocol.MCP` のエージェントツール一覧に `koinon_download_model` を追加。Antigravity や Pakila などの AI エージェントが会話から自律的にモデルを取得可能に拡張。
+- **スタートアップ CLI プロビジョニング (`Main.lean`)**:
+  - `--fetch-model <repo_id> <file_name>` フラグによるサーバー起動時モデル自動配置に対応。
+- **Web Studio UI Model Store (`web/index.html`, `web/app.js`)**:
+  - Web UI に「Hugging Face Model Store」カードを追加。ワンクリックダウンロードおよびモデル選択肢の自動動的更新をサポート。
 - **4 段階ハイブリッド検証テストスイート (Phase 1〜4 100% PASS)**:
-  - `lake exe test_driver` による全 157 ジョブの物理コンパイルおよび全 6 シナリオ（RAG Ingest, Multi-turn RAG Chat, Embeddings API, MCP JSON-RPC 2.0, Raw HTTP Parser, Malformed JSON Resilience）が 100% 通過。
+  - `lake exe test_driver` による全 159 ジョブの物理コンパイルおよび全 6 シナリオ（RAG Ingest, Multi-turn RAG Chat, HF Download API, MCP `koinon_download_model` tool, Raw HTTP Parser, Malformed JSON Resilience）が 100% 通過。
+
 
 
 
