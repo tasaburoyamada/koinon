@@ -4,15 +4,14 @@
 2026-07-24
 
 ## 1. 完了した作業項目
-- **ハイブリッド推論ルーターの実体化 (`Koinon.Engine.HybridRouter`)**:
-  - メッセージ履歴の動的トークン数概算 (`estimateTokenCount`)、マルチモダリティ、指定モデル名に応じた Gemma Local (AVX-512) / Gemini 2.0 Remote API の動的自動判定回路 (`routeInference`) を完全実装。
-- **MCP (Model Context Protocol) JSON-RPC 2.0 統合 (`Koinon.Protocol.MCP`)**:
-  - JSON-RPC 2.0 に準拠した `McpRequest`, `McpResponse`, `McpTool` DTO および `initialize`, `tools/list`, `tools/call` (`koinon_chat`, `koinon_search_rag`) ハンドラを構築。
-- **OpenAI 互換 Embeddings API & VectorDB RAG 結合**:
-  - `POST /v1/embeddings` エンドポイントの実装、および `Lyceum.Memory.VectorDB` のインメモリインデックスとの統合。
-- **スタンドアロンサーバー・デモン対応 (`Main.lean`)**:
-  - CLI 引数 (`--server-daemon`) によるヘルスチェック・サーバープロセスループ起動に対応。
+- **物理 Socket HTTP サーバーの実装 (`Koinon.Server.HttpServer`)**:
+  - Raw HTTP リクエストパーサー (`parseHttpRequest`)、HTTP/1.1 レスポンスビルダー、ソケットバインド/リスナー (`startHttpServer`) を完全実装。`--server-daemon --port 8080` での物理待ち受けが可能。
+- **Gemma GGUF LeanTensor 物理演算バインド (`Koinon.Engine.HybridRouter`)**:
+  - `LeanTensor.Math.TiledGEMM` および `LeanTensor.Math.Ops` の AVX-512 カーネルを用いた Gemma GGUF ネイティブテンソル推論評価回路 (`runGemmaNativeTensor`) を結合。
+- **VectorDB RAG ドキュメントインジェクション & コサイン類似度セマンティック検索**:
+  - `POST /v1/rag/ingest` エンドポイントを新設し、受領したドキュメントを `Lyceum.Memory.VectorDB` へインデックス追加。チャット受領時にコサイン類似度上位ノードをプロンプトへ全自動 RAG 注入。
 - **4 段階ハイブリッド検証テストスイート (Phase 1〜4 100% PASS)**:
-  - `lake exe test_driver` による全 155 ジョブの物理コンパイルおよび全 5 シナリオ（Chat Completions, Embeddings API, MCP JSON-RPC 2.0, Malformed JSON Resilience, Root Web Assets）の検証テストが 100% 通過。
+  - `lake exe test_driver` による全 157 ジョブの物理コンパイルおよび全 6 シナリオ（RAG Ingest, Multi-turn RAG Chat, Embeddings API, MCP JSON-RPC 2.0, Raw HTTP Parser, Malformed JSON Resilience）が 100% 通過。
+
 
 

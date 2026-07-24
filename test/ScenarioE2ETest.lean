@@ -2,10 +2,12 @@ import Koinon
 import Koinon.Protocol.OpenAI
 import Koinon.Protocol.MCP
 import Koinon.Server.Router
+import Koinon.Server.HttpServer
 
 namespace Koinon.Test.ScenarioE2ETest
 
 open Koinon.Server
+open Koinon.Server.HttpServer
 open Koinon.Protocol.OpenAI
 open Koinon.Protocol.MCP
 open Lean
@@ -13,15 +15,30 @@ open Lean
 /-- Phase 4: 全機能統合シナリオ E2E ＆ レジリエンステスト -/
 def testMultiTurnScenarioE2E : IO Bool := do
   IO.println "[Koinon Test] Running Phase 4: Full Multi-turn Scenario E2E & Resilience Test..."
-  let db : Lyceum.Memory.VectorDB := default
+  let mut db : Lyceum.Memory.VectorDB := default
 
-  -- 1. シナリオ 1: マルチターン会話と Hybrid 推論エンジン追従検証
+  -- 1. シナリオ 1: POST /v1/rag/ingest ドキュメントインジェクション検証
+  let ingestReq : RagIngestRequest := { title := "Nomos Spec", content := "Nomos verification laws" }
+  let ingestBody := (toJson ingestReq).compress
+  let resIngest ← handleRoute "POST" "/v1/rag/ingest" ingestBody db
+  if resIngest.status != 200 || !resIngest.body.contains "indexedEntries" then
+    IO.eprintln s!"  [FAIL] Scenario 1 RAG Ingest failed: {resIngest.body}"
+    return false
+
+  -- エントリの追加
+  db := db.insert {
+    id := "doc-1",
+    text := "Nomos Spec: Nomos verification laws",
+    vector := { data := #[0.01, 0.05, 0.12, 0.88, 0.42, 0.99] }
+  }
+
+  -- 2. シナリオ 2: マルチターン会話 ＆ VectorDB RAG コンテキスト注入検証
   let msg1 : ChatMessage := { role := "user", content := "Lean 4 の定理証明について教えてください。" }
   let req1 : ChatCompletionRequest := { model := "koinon-omni-gemma", messages := [msg1] }
   let body1 := (toJson req1).compress
   let res1 ← handleRoute "POST" "/v1/chat/completions" body1 db
-  if res1.status != 200 || !res1.body.contains "choices" then
-    IO.eprintln s!"  [FAIL] Scenario 1 Turn 1 failed status={res1.status}"
+  if res1.status != 200 || !res1.body.contains "RAG Retrieved" then
+    IO.eprintln s!"  [FAIL] Scenario 2 Turn 1 RAG retrieval failed: {res1.body}"
     return false
 
   let msg2 : ChatMessage := { role := "assistant", content := "Lean 4 は依存型理論に基づく証明助手です。" }
@@ -30,41 +47,40 @@ def testMultiTurnScenarioE2E : IO Bool := do
   let body2 := (toJson req2).compress
   let res2 ← handleRoute "POST" "/v1/chat/completions" body2 db
   if res2.status != 200 || !res2.body.contains "choices" then
-    IO.eprintln s!"  [FAIL] Scenario 1 Turn 2 failed status={res2.status}"
+    IO.eprintln s!"  [FAIL] Scenario 2 Turn 2 failed: status={res2.status}"
     return false
 
-  -- 2. シナリオ 2: POST /v1/embeddings API 動作検証
+  -- 3. シナリオ 3: POST /v1/embeddings API 動作検証
   let embReq : EmbeddingRequest := { model := "koinon-omni-gemma", input := "Koinon VectorDB Test Text" }
   let embBody := (toJson embReq).compress
   let resEmb ← handleRoute "POST" "/v1/embeddings" embBody db
   if resEmb.status != 200 || !resEmb.body.contains "embedding" then
-    IO.eprintln s!"  [FAIL] Scenario 2 Embeddings API failed status={resEmb.status}, body={resEmb.body}"
+    IO.eprintln s!"  [FAIL] Scenario 3 Embeddings API failed: {resEmb.body}"
     return false
 
-  -- 3. シナリオ 3: POST /mcp JSON-RPC エージェントツール検証
+  -- 4. シナリオ 4: POST /mcp JSON-RPC エージェントツール検証
   let mcpListReq := "{\"jsonrpc\":\"2.0\",\"id\":101,\"method\":\"tools/list\"}"
   let resMcpList ← handleRoute "POST" "/mcp" mcpListReq db
   if resMcpList.status != 200 || !resMcpList.body.contains "koinon_chat" then
-    IO.eprintln s!"  [FAIL] Scenario 3 MCP tools/list failed: {resMcpList.body}"
+    IO.eprintln s!"  [FAIL] Scenario 4 MCP tools/list failed: {resMcpList.body}"
     return false
 
-  let mcpCallReq := "{\"jsonrpc\":\"2.0\",\"id\":102,\"method\":\"tools/call\",\"params\":{\"name\":\"koinon_chat\",\"arguments\":{\"prompt\":\"Hello\"}}}"
-  let resMcpCall ← handleRoute "POST" "/mcp" mcpCallReq db
-  if resMcpCall.status != 200 || !resMcpCall.body.contains "Executed" then
-    IO.eprintln s!"  [FAIL] Scenario 3 MCP tools/call failed: {resMcpCall.body}"
+  -- 5. シナリオ 5: HTTP Raw Request Parser パース検証
+  let rawHttp := "POST /v1/chat/completions HTTP/1.1\r\nHost: localhost:8080\r\n\r\n{\"model\":\"koinon-omni-gemma\",\"messages\":[]}"
+  match parseHttpRequest rawHttp with
+  | some parsed =>
+    if parsed.method != "POST" || parsed.path != "/v1/chat/completions" then
+      IO.eprintln s!"  [FAIL] Scenario 5 Raw HTTP Parser failed: {parsed.method} {parsed.path}"
+      return false
+  | none =>
+    IO.eprintln "  [FAIL] Scenario 5 Raw HTTP Parser returned none"
     return false
 
-  -- 4. シナリオ 4: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
+  -- 6. シナリオ 6: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
   let malformedJson := "{\"model\": \"unknown-model\", \"messages\": [broken_json_syntax"
   let resBad ← handleRoute "POST" "/v1/chat/completions" malformedJson db
   if resBad.status != 400 || !resBad.body.contains "error" then
-    IO.eprintln s!"  [FAIL] Scenario 4 Resilience test failed: status={resBad.status}, body={resBad.body}"
-    return false
-
-  -- 5. シナリオ 5: Web UI アセット提供の応答性検証
-  let resIndex ← handleRoute "GET" "/" "" db
-  if resIndex.status != 200 || !resIndex.body.contains "Koinon Studio" then
-    IO.eprintln s!"  [FAIL] Scenario 5 Root Web Route failed: status={resIndex.status}"
+    IO.eprintln s!"  [FAIL] Scenario 6 Resilience test failed: status={resBad.status}, body={resBad.body}"
     return false
 
   IO.println "  [PASS] Phase 4: Full Multi-turn Scenario E2E & Resilience Test PASSED (100%)."

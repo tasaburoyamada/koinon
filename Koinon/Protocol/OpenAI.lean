@@ -84,4 +84,18 @@ structure EmbeddingResponse where
   usage : UsageInfo := {}
 deriving ToJson, FromJson, Repr, Inhabited
 
+/-- POST /v1/rag/ingest ドキュメントインジェクションリクエスト -/
+structure RagIngestRequest where
+  id : Option String := none
+  title : String
+  content : String
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- POST /v1/rag/ingest レスポンス -/
+structure RagIngestResponse where
+  status : String := "ok"
+  docId : String
+  indexedEntries : Nat
+deriving ToJson, FromJson, Repr, Inhabited
+
 end Koinon.Protocol.OpenAI

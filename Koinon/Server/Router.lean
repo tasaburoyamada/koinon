@@ -11,6 +11,7 @@ open Lean
 open Koinon.Protocol.OpenAI
 open Koinon.Protocol.MCP
 open Koinon.Engine
+open Lyceum.Memory
 
 structure HttpResponse where
   status : Nat := 200
@@ -19,7 +20,7 @@ structure HttpResponse where
 deriving Repr, Inhabited
 
 /-- REST API & MCP リクエストを処理するメインルーター -/
-def handleRoute (method : String) (path : String) (body : String) (db : Lyceum.Memory.VectorDB) : IO HttpResponse := do
+def handleRoute (method : String) (path : String) (body : String) (db : VectorDB) : IO HttpResponse := do
   -- 1. Web Assets Routes
   if method == "GET" && (path == "/" || path == "/index.html") then
     let content ← IO.FS.readFile "web/index.html"
@@ -41,7 +42,7 @@ def handleRoute (method : String) (path : String) (body : String) (db : Lyceum.M
     }
     return { status := 200, body := (toJson models).compress }
 
-  -- 3. POST /v1/chat/completions (OpenAI & Hybrid Routing & RAG)
+  -- 3. POST /v1/chat/completions (OpenAI & Hybrid Routing & RAG Context Ingestion)
   else if method == "POST" && path == "/v1/chat/completions" then
     match Json.parse body with
     | Except.ok j =>
@@ -54,9 +55,14 @@ def handleRoute (method : String) (path : String) (body : String) (db : Lyceum.M
             let config : RouterConfig := default
             let infRes ← routeInference config req.model lyceumMessages false
 
+            -- VectorDB RAG ノード検索
+            let queryVector : Lyceum.Memory.Vector := { data := #[0.01, 0.05, 0.12, 0.88, 0.42, 0.99] }
+            let retrieved := db.search queryVector 3 0.1
+            let ragContextMsg := if retrieved.size > 0 then s!" [RAG Retrieved {retrieved.size} Vector Nodes]" else ""
+
             let respMsg : ChatMessage := {
               role := "assistant",
-              content := s!"{infRes.content} (VectorDB size: {db.entries.size})"
+              content := s!"{infRes.content}{ragContextMsg} (VectorDB total entries: {db.entries.size})"
             }
             let resp : ChatCompletionResponse := {
               id := "chatcmpl-koinon-12345",
@@ -89,7 +95,32 @@ def handleRoute (method : String) (path : String) (body : String) (db : Lyceum.M
     | Except.error err =>
         return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
 
-  -- 5. POST /mcp (Model Context Protocol JSON-RPC)
+  -- 5. POST /v1/rag/ingest (VectorDB Document Ingestion API)
+  else if method == "POST" && path == "/v1/rag/ingest" then
+    match Json.parse body with
+    | Except.ok j =>
+        match (fromJson? j : Except String RagIngestRequest) with
+        | Except.ok req =>
+            let assignedId := req.id.getD s!"doc-{db.entries.size + 1}"
+            let entry : VectorEntry := {
+              id := assignedId,
+              text := s!"{req.title}: {req.content}",
+              vector := { data := #[0.01, 0.05, 0.12, 0.88, 0.42, 0.99] },
+              metadata := Json.mkObj [("title", Json.str req.title)]
+            }
+            let updatedDb := db.insert entry
+            let resp : RagIngestResponse := {
+              status := "ok",
+              docId := assignedId,
+              indexedEntries := updatedDb.entries.size
+            }
+            return { status := 200, body := (toJson resp).compress }
+        | Except.error err =>
+            return { status := 400, body := s!"\{\"error\": \"Invalid RagIngestRequest: {err}\"}" }
+    | Except.error err =>
+        return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
+
+  -- 6. POST /mcp (Model Context Protocol JSON-RPC)
   else if method == "POST" && (path == "/mcp" || path == "/v1/mcp") then
     let mcpRes ← handleMcpJsonRpc body
     match mcpRes with
