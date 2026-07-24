@@ -2,12 +2,13 @@ import Koinon
 import test.BlackboxTraceTest
 import test.BoundaryTest
 import test.PhysicalBinaryTest
+import test.ScenarioE2ETest
 
 namespace Koinon.Test.TestDriver
 
 def main : IO UInt32 := do
   IO.println "=================================================="
-  IO.println "  Koinon 3-Phase Hybrid Blackbox Test Suite       "
+  IO.println "  Koinon 4-Phase Hybrid Blackbox Test Suite       "
   IO.println "=================================================="
 
   -- Phase 1: Nomos Trace Validation
@@ -26,6 +27,12 @@ def main : IO UInt32 := do
   let p3 ← Koinon.Test.PhysicalBinaryTest.testPhysicalExecution
   if !p3 then
     IO.eprintln "  [FAIL] Phase 3: Physical Binary Execution Failed"
+    return 1
+
+  -- Phase 4: Multi-turn Scenario E2E & Resilience
+  let p4 ← Koinon.Test.ScenarioE2ETest.testMultiTurnScenarioE2E
+  if !p4 then
+    IO.eprintln "  [FAIL] Phase 4: Multi-turn Scenario E2E Failed"
     return 1
 
   IO.println "=================================================="
