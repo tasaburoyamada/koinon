@@ -2,3 +2,5 @@
 .elan/
 *~
 *.bak
+dist/
+models/*.gguf

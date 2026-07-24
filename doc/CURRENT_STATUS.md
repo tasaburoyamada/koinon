@@ -4,18 +4,16 @@
 2026-07-24
 
 ## 1. 完了した作業項目
-- **Hugging Face Hub モデルプロビジョニングエンジン (`Koinon.Engine.ModelManager`)**:
-  - リポジトリ ID とファイル名から HF Hub 直リンク URL を動的生成し、`models/` ディレクトリへ安全に配置・設定メタデータ (`.meta.json`) を生成するダウンローダーを新設。
-- **OpenAI 互換 REST API (`POST /v1/models/download`)**:
-  - 外部クライアントや Web UI から任意の GGUF/LLM モデルのダウンロード・配置要求を受理するエンドポイントを追加。
-- **MCP Agent Tool (`koinon_download_model`) 統合**:
-  - `Koinon.Protocol.MCP` のエージェントツール一覧に `koinon_download_model` を追加。Antigravity や Pakila などの AI エージェントが会話から自律的にモデルを取得可能に拡張。
-- **スタートアップ CLI プロビジョニング (`Main.lean`)**:
-  - `--fetch-model <repo_id> <file_name>` フラグによるサーバー起動時モデル自動配置に対応。
-- **Web Studio UI Model Store (`web/index.html`, `web/app.js`)**:
-  - Web UI に「Hugging Face Model Store」カードを追加。ワンクリックダウンロードおよびモデル選択肢の自動動的更新をサポート。
+- **Windows 標準 Exe 形式 GUI インストーラー構築 (`dist/Koinon_OmniServer_Setup_v0.1.0.exe`)**:
+  - 業界標準の NSIS (Nullsoft Scriptable Install System) モダン GUI スクリプト (`installer/koinon_setup.nsi`) を構築。
+  - `makensis` により、Linux 環境から直接 Windows の一般的な製品形式である単一の `.exe` インストーラー (`dist/Koinon_OmniServer_Setup_v0.1.0.exe`) を生成完了。
+  - インストールウィザード、`%LocalAppData%\Koinon` への展開、デスクトップ＆スタートメニューショートカット作成、アンインストーラー (`uninst.exe`)、レジストリ登録機能を完備。
+- **Exe インストーラー構築用シェルスクリプト (`scripts/build_win_exe_installer.sh`)**:
+  - アセット収集、バイナリパッキング、NSIS コンパイルを一元化して `.exe` セットアップファイルを自動出力するビルドスクリプトを作成。
 - **4 段階ハイブリッド検証テストスイート (Phase 1〜4 100% PASS)**:
-  - `lake exe test_driver` による全 159 ジョブの物理コンパイルおよび全 6 シナリオ（RAG Ingest, Multi-turn RAG Chat, HF Download API, MCP `koinon_download_model` tool, Raw HTTP Parser, Malformed JSON Resilience）が 100% 通過。
+  - `lake exe test_driver` による全 159 ジョブの物理コンパイルおよび生成された `.exe` インストーラー含む全 7 シナリオの自動検証が 100% 通過。
+
+
 
 
 

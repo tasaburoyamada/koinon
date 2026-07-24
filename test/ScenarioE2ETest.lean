@@ -78,11 +78,19 @@ def testMultiTurnScenarioE2E : IO Bool := do
     IO.eprintln "  [FAIL] Scenario 5 Raw HTTP Parser returned none"
     return false
 
-  -- 6. シナリオ 6: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
+  -- 6. シナリオ 6: Windows Exe インストーラーアセット (NSIS/Exe) 整合性検証
+  let winBatExists ← System.FilePath.pathExists "installer/koinon-server.bat"
+  let winNsiExists ← System.FilePath.pathExists "installer/koinon_setup.nsi"
+  let winExeExists ← System.FilePath.pathExists "dist/Koinon_OmniServer_Setup_v0.1.0.exe"
+  if !winBatExists || !winNsiExists || !winExeExists then
+    IO.eprintln "  [FAIL] Scenario 6 Windows Setup Exe Verification Failed"
+    return false
+
+  -- 7. シナリオ 7: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
   let malformedJson := "{\"model\": \"unknown-model\", \"messages\": [broken_json_syntax"
   let resBad ← handleRoute "POST" "/v1/chat/completions" malformedJson db
   if resBad.status != 400 || !resBad.body.contains "error" then
-    IO.eprintln s!"  [FAIL] Scenario 6 Resilience test failed: status={resBad.status}, body={resBad.body}"
+    IO.eprintln s!"  [FAIL] Scenario 7 Resilience test failed: status={resBad.status}, body={resBad.body}"
     return false
 
   IO.println "  [PASS] Phase 4: Full Multi-turn Scenario E2E & Resilience Test PASSED (100%)."
