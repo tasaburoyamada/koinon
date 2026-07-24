@@ -1,6 +1,7 @@
 import Lyceum
 import Nomos.Laws
 import Koinon.Protocol.OpenAI
+import Koinon.Protocol.MCP
 import Koinon.Engine.HybridRouter
 import Koinon.Server.Router
 

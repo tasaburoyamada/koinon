@@ -62,4 +62,26 @@ structure ModelListResponse where
   data : List ModelObject
 deriving ToJson, FromJson, Repr, Inhabited
 
+/-- POST /v1/embeddings リクエスト -/
+structure EmbeddingRequest where
+  model : String
+  input : String
+  user : Option String := none
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- Embedding データオブジェクト -/
+structure EmbeddingObject where
+  object : String := "embedding"
+  index : Nat := 0
+  embedding : List Float
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- POST /v1/embeddings レスポンス -/
+structure EmbeddingResponse where
+  object : String := "list"
+  data : List EmbeddingObject
+  model : String
+  usage : UsageInfo := {}
+deriving ToJson, FromJson, Repr, Inhabited
+
 end Koinon.Protocol.OpenAI
