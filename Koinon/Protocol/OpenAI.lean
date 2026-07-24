@@ -98,4 +98,22 @@ structure RagIngestResponse where
   indexedEntries : Nat
 deriving ToJson, FromJson, Repr, Inhabited
 
+/-- POST /v1/training/bitnet リクエスト -/
+structure BitNetTrainRequest where
+  inFeatures : Nat := 8
+  outFeatures : Nat := 4
+  epochs : Nat := 5
+  learningRate : Float := 0.01
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- POST /v1/training/bitnet レスポンス -/
+structure BitNetTrainResponse where
+  status : String := "success"
+  initialLoss : Float
+  finalLoss : Float
+  trainedEpochs : Nat
+  gamma : Float
+  message : String
+deriving ToJson, FromJson, Repr, Inhabited
+
 end Koinon.Protocol.OpenAI

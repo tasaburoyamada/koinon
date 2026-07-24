@@ -86,11 +86,19 @@ def testMultiTurnScenarioE2E : IO Bool := do
     IO.eprintln "  [FAIL] Scenario 6 Windows Setup Exe Verification Failed"
     return false
 
-  -- 7. シナリオ 7: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
+  -- 7. シナリオ 7: POST /v1/training/bitnet 1-bit (BitNet b1.58) QAT 蒸留学習 API 検証
+  let trainReq : BitNetTrainRequest := { inFeatures := 8, outFeatures := 4, epochs := 3, learningRate := 0.01 }
+  let trainBody := (toJson trainReq).compress
+  let resTrain ← handleRoute "POST" "/v1/training/bitnet" trainBody db
+  if resTrain.status != 200 || !resTrain.body.contains "BitNet b1.58" then
+    IO.eprintln s!"  [FAIL] Scenario 7 BitNet Training API failed: {resTrain.body}"
+    return false
+
+  -- 8. シナリオ 8: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
   let malformedJson := "{\"model\": \"unknown-model\", \"messages\": [broken_json_syntax"
   let resBad ← handleRoute "POST" "/v1/chat/completions" malformedJson db
   if resBad.status != 400 || !resBad.body.contains "error" then
-    IO.eprintln s!"  [FAIL] Scenario 7 Resilience test failed: status={resBad.status}, body={resBad.body}"
+    IO.eprintln s!"  [FAIL] Scenario 8 Resilience test failed: status={resBad.status}, body={resBad.body}"
     return false
 
   IO.println "  [PASS] Phase 4: Full Multi-turn Scenario E2E & Resilience Test PASSED (100%)."

@@ -4,6 +4,8 @@ import Koinon.Protocol.OpenAI
 import Koinon.Protocol.MCP
 import Koinon.Engine.HybridRouter
 import Lyceum.Memory.VectorDB
+import Lyceum.Training.BitLinear
+import Lyceum.Training.Distillation
 
 namespace Koinon.Server
 
@@ -134,7 +136,33 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
     | Except.error err =>
         return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
 
-  -- 7. POST /mcp (Model Context Protocol JSON-RPC)
+  -- 7. POST /v1/training/bitnet (BitNet b1.58 QAT Distillation API)
+  else if method == "POST" && path == "/v1/training/bitnet" then
+    match Json.parse body with
+    | Except.ok j =>
+        match (fromJson? j : Except String BitNetTrainRequest) with
+        | Except.ok req =>
+            let initLayer := Lyceum.Training.BitLinear.createBitLinear req.inFeatures req.outFeatures
+            let dataset : List (Array Float × Array Float) := [
+              (#[0.1, 0.5, -0.2, 0.8, 0.3, -0.1, 0.9, 0.4], #[1.0, 0.0, 0.0, 0.0]),
+              (#[-0.5, 0.2, 0.9, -0.1, 0.4, 0.7, -0.3, 0.6], #[0.0, 1.0, 0.0, 0.0])
+            ]
+            let (_, trainRes) := Lyceum.Training.Distillation.runDistillationTraining initLayer dataset req.epochs req.learningRate
+            let resp : BitNetTrainResponse := {
+              status := "success",
+              initialLoss := trainRes.initialLoss,
+              finalLoss := trainRes.finalLoss,
+              trainedEpochs := trainRes.trainedEpochs,
+              gamma := trainRes.gamma,
+              message := s!"BitNet b1.58 1-bit QAT Distillation completed for {req.epochs} epochs with STE gradients."
+            }
+            return { status := 200, body := (toJson resp).compress }
+        | Except.error err =>
+            return { status := 400, body := s!"\{\"error\": \"Invalid BitNetTrainRequest: {err}\"}" }
+    | Except.error err =>
+        return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
+
+  -- 8. POST /mcp (Model Context Protocol JSON-RPC)
   else if method == "POST" && (path == "/mcp" || path == "/v1/mcp") then
     let mcpRes ← handleMcpJsonRpc body
     match mcpRes with

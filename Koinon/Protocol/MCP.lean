@@ -68,6 +68,17 @@ def getAvailableTools : List McpTool := [
       ]),
       ("required", Json.arr #[Json.str "repo_id", Json.str "file_name"])
     ]
+  },
+  {
+    name := "koinon_train_bitnet",
+    description := "BitNet b1.58 (1.58-bit Ternary) QAT 蒸留学習エージェントツール",
+    inputSchema := Json.mkObj [
+      ("type", Json.str "object"),
+      ("properties", Json.mkObj [
+        ("epochs", Json.mkObj [("type", Json.str "number")]),
+        ("learning_rate", Json.mkObj [("type", Json.str "number")])
+      ])
+    ]
   }
 ]
 
