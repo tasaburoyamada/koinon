@@ -116,4 +116,20 @@ structure BitNetTrainResponse where
   message : String
 deriving ToJson, FromJson, Repr, Inhabited
 
+/-- POST /v1/chat/mla リクエスト -/
+structure MLAChatRequest where
+  prompt : String
+  pos : Option Nat := none
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- POST /v1/chat/mla レスポンス -/
+structure MLAChatResponse where
+  status : String := "success"
+  compressedKvDim : Nat
+  qLatentDim : Nat
+  absorbedCalculation : Bool := true
+  nomosInvariantVerified : Bool
+  response : String
+deriving ToJson, FromJson, Repr, Inhabited
+
 end Koinon.Protocol.OpenAI

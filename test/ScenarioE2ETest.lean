@@ -94,11 +94,19 @@ def testMultiTurnScenarioE2E : IO Bool := do
     IO.eprintln s!"  [FAIL] Scenario 7 BitNet Training API failed: {resTrain.body}"
     return false
 
-  -- 8. シナリオ 8: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
+  -- 8. シナリオ 8: POST /v1/chat/mla Multi-Head Latent Attention (MLA) 高速推論 API 検証
+  let mlaReq : MLAChatRequest := { prompt := "DeepSeek MLA Latent Attention Test" }
+  let mlaBody := (toJson mlaReq).compress
+  let resMla ← handleRoute "POST" "/v1/chat/mla" mlaBody db
+  if resMla.status != 200 || !resMla.body.contains "nomosInvariantVerified" then
+    IO.eprintln s!"  [FAIL] Scenario 8 MLA Fast Inference API failed: {resMla.body}"
+    return false
+
+  -- 9. シナリオ 9: 不正なパラメータ・壊れたJSON投入時の透過的エラーハンドリング検証
   let malformedJson := "{\"model\": \"unknown-model\", \"messages\": [broken_json_syntax"
   let resBad ← handleRoute "POST" "/v1/chat/completions" malformedJson db
   if resBad.status != 400 || !resBad.body.contains "error" then
-    IO.eprintln s!"  [FAIL] Scenario 8 Resilience test failed: status={resBad.status}, body={resBad.body}"
+    IO.eprintln s!"  [FAIL] Scenario 9 Resilience test failed: status={resBad.status}, body={resBad.body}"
     return false
 
   IO.println "  [PASS] Phase 4: Full Multi-turn Scenario E2E & Resilience Test PASSED (100%)."

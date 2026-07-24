@@ -79,6 +79,17 @@ def getAvailableTools : List McpTool := [
         ("learning_rate", Json.mkObj [("type", Json.str "number")])
       ])
     ]
+  },
+  {
+    name := "koinon_mla_inference",
+    description := "Multi-Head Latent Attention (MLA) Matrix Absorption 高速推論エージェントツール",
+    inputSchema := Json.mkObj [
+      ("type", Json.str "object"),
+      ("properties", Json.mkObj [
+        ("prompt", Json.mkObj [("type", Json.str "string")])
+      ]),
+      ("required", Json.arr #[Json.str "prompt"])
+    ]
   }
 ]
 
