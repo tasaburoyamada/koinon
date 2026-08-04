@@ -20,7 +20,7 @@ def testServerRouting : IO UInt32 := do
   -- 2. Test POST /v1/chat/completions
   let reqBody := "{\"model\": \"koinon-omni-gemma\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello, Koinon!\"}]}"
   let resChat ← handleRoute "POST" "/v1/chat/completions" reqBody db
-  if resChat.status != 200 || !resChat.body.contains "Processed prompt" then
+  if resChat.status != 200 || !resChat.body.contains "Gemma Kernel" then
     IO.eprintln s!"  [FAIL] /v1/chat/completions failed: {resChat.body}"
     return 1
 
