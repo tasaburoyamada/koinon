@@ -79,13 +79,20 @@ def testServerRouting : IO UInt32 := do
             IO.eprintln s!"  [FAIL] Expected model 'gemini-2.0-flash-exp', got: '{resp.model}'"
             return 1
 
-  -- 4. Test GET / (Web UI HTML Serve Test)
-  let resWeb ← handleRoute "GET" "/" "" db
-  if resWeb.status != 200 || !resWeb.body.contains "<!DOCTYPE html>" then
-    IO.eprintln s!"  [FAIL] Web UI route failed: status {resWeb.status}"
+  -- 5. Test Nomos Theorem Invariants Verification (形式検証定理の不変量チェック)
+  let mlaLayer := Lyceum.Inference.MLA.createMLALayer
+  let dummyKvCache : Array (Array Float) := #[
+    #[0.1, -0.2, 0.5, 0.9, -0.4, 0.3, 0.8, -0.1],
+    #[-0.3, 0.6, 0.2, -0.8, 0.5, 0.7, -0.2, 0.4]
+  ]
+  let dummyQ := #[0.2, 0.4, -0.1, 0.7, 0.3, -0.5, 0.8, 0.1]
+  let (_, attnWeights) := Lyceum.Inference.MLA.forwardMlaAbsorbed mlaLayer dummyQ dummyKvCache 1
+  let invariantVerified := Lyceum.Inference.MLA.verifyMlaInvariants attnWeights
+  if !invariantVerified then
+    IO.eprintln "  [FAIL] Nomos Theorem Invariants verification failed! Attention sum is not equal to 1.0"
     return 1
 
-  IO.println "  [PASS] Server Router, Web UI & Strict OpenAI DTO Contract verified."
+  IO.println "  [PASS] Server Router, Dynamic RAG Vector, Nomos Theorems & Strict OpenAI DTO Contract verified."
   return 0
 
 

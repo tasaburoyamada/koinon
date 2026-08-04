@@ -59,10 +59,16 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
             let config : RouterConfig := default
             let infRes ← routeInference config req.model lyceumMessages false
 
-            -- VectorDB RAG ノード検索
-            let queryVector : Lyceum.Memory.Vector := { data := #[0.01, 0.05, 0.12, 0.88, 0.42, 0.99] }
+            -- VectorDB RAG ノード検索 (固定ダミーベクトルを排除し、ユーザープロンプト文字列から動的ベクトルを生成)
+            let promptText := req.messages.getLast?.map (fun m => m.content) |>.getD ""
+            let pBytes := promptText.toUTF8
+            let getByte (idx : Nat) : Float :=
+              if idx < pBytes.size then
+                (Float.ofNat (pBytes.get! idx).toNat) / 255.0
+              else 0.0
+            let queryVector : Lyceum.Memory.Vector := { data := #[getByte 0, getByte 1, getByte 2, getByte 3, getByte 4, getByte 5] }
             let retrieved := db.search queryVector 3 0.1
-            let ragContextMsg := if retrieved.size > 0 then s!" [RAG Retrieved {retrieved.size} Vector Nodes]" else ""
+            let ragContextMsg := if retrieved.size > 0 then s!" [RAG Dynamic Vector Matched {retrieved.size} Nodes]" else ""
 
             let respMsg : ChatMessage := {
               role := "assistant",
