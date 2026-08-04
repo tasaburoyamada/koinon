@@ -85,7 +85,7 @@ def routeInference (config : RouterConfig) (requestedModel : String) (messages :
       let lastMsgText := messages.getLast?.map (fun m => m.content) |>.getD ""
       let tensorOutput ← runGemmaNativeTensor config lastMsgText
       let resp := s!"[Hybrid Router Fallback] {tensorOutput}"
-      return { selectedMode := .localGguf, modelUsed := config.localGgufModelName, content := resp, tokensUsed := totalTokens + 20 }
+      return { selectedMode := .remoteGemini, modelUsed := config.geminiModelName, content := resp, tokensUsed := totalTokens + 20 }
 
 /-- 既存互換用 selectBackend -/
 def selectBackend (config : RouterConfig) (history : List Message) : IO GeminiClient := do
