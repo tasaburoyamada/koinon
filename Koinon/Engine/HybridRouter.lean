@@ -1,3 +1,5 @@
+import Lean
+import Lean.Data.Json
 import Lyceum
 import Lyceum.Inference.Backend
 import LeanTensor.Math.Ops
@@ -5,6 +7,7 @@ import LeanTensor.Math.TiledGEMM
 
 namespace Koinon.Engine
 
+open Lean
 open Lyceum
 
 /-- ハイブリッドエンジン動作モード -/
@@ -24,11 +27,11 @@ structure RouterConfig where
 deriving Repr, Inhabited
 
 /-- メッセージ履歴の概算トークン数を算出 -/
-def estimateTokenCount (messages : List Message) : Nat :=
+def estimateTokenCount (messages : List Lyceum.Message) : Nat :=
   messages.foldl (fun acc m => acc + m.content.length / 4 + 1) 0
 
 /-- リクエスト条件に基づいて最適な EngineMode を決定 -/
-def decideEngineMode (config : RouterConfig) (requestedModel : String) (messages : List Message) (hasMultimodal : Bool) : EngineMode :=
+def decideEngineMode (config : RouterConfig) (requestedModel : String) (messages : List Lyceum.Message) (hasMultimodal : Bool) : EngineMode :=
   match config.mode with
   | .localGguf => .localGguf
   | .remoteGemini => .remoteGemini
@@ -67,7 +70,7 @@ def runGemmaNativeTensor (config : RouterConfig) (prompt : String) : IO String :
   return s!"[LeanTensor AVX-512 Gemma Kernel] {modelStatusMsg}. Evaluated prompt length {prompt.length} with tensor score {tensorScore}. Model: '{config.localGgufModelName}'."
 
 /-- リクエストを受領し、最適な LLM バックエンドへルーティングして推論結果を取得 -/
-def routeInference (config : RouterConfig) (requestedModel : String) (messages : List Message) (hasMultimodal : Bool := false) : IO InferenceResult := do
+def routeInference (config : RouterConfig) (requestedModel : String) (messages : List Lyceum.Message) (hasMultimodal : Bool := false) : IO InferenceResult := do
   let mode := decideEngineMode config requestedModel messages hasMultimodal
   let totalTokens := estimateTokenCount messages
 
@@ -89,8 +92,38 @@ def routeInference (config : RouterConfig) (requestedModel : String) (messages :
         let resp := s!"[Hybrid Auto Mode] Route: Gemini 2.0. (Notice: GEMINI_API_KEY is empty, fallback to deterministic local response for prompt with {messages.length} messages)."
         return { selectedMode := .remoteGemini, modelUsed := config.geminiModelName, content := resp, tokensUsed := totalTokens + 24 }
       else
-        let resp := s!"[Gemini 2.0 Remote API] Processed prompt of {totalTokens} tokens via Gemini Flash 2.0 API."
-        return { selectedMode := .remoteGemini, modelUsed := config.geminiModelName, content := resp, tokensUsed := totalTokens + 32 }
+        -- 物理 REST API 通信: curl / HTTP POST を経由して Google Gemini 2.0 API を直接呼び出し
+        let endpoint := s!"https://generativelanguage.googleapis.com/v1beta/models/{config.geminiModelName}:generateContent?key={key}"
+        let promptText := messages.getLast?.map (fun m => m.content) |>.getD "Hello"
+        let requestJson := Json.compress (Json.mkObj [("contents", Json.arr #[Json.mkObj [("parts", Json.arr #[Json.mkObj [("text", Json.str promptText)]])]])])
+        let curlArgs := #["-s", "-X", "POST", endpoint, "-H", "Content-Type: application/json", "-d", requestJson]
+        let procOut ← IO.Process.output { cmd := "curl", args := curlArgs }
+        if procOut.exitCode == 0 then
+          let apiRespMsg := match Json.parse procOut.stdout with
+            | Except.ok respJson =>
+                match respJson.getObjValD "candidates" with
+                | Json.arr candidates =>
+                    if h : candidates.size > 0 then
+                      let firstCand := candidates[0]'h
+                      match firstCand.getObjValD "content" with
+                      | Json.obj _ =>
+                          match (firstCand.getObjValD "content").getObjValD "parts" with
+                          | Json.arr parts =>
+                              if h2 : parts.size > 0 then
+                                let p0 := parts[0]'h2
+                                match p0.getObjValD "text" with
+                                | Json.str txt => txt
+                                | _ => procOut.stdout
+                              else procOut.stdout
+                          | _ => procOut.stdout
+                      | _ => procOut.stdout
+                    else procOut.stdout
+                | _ => procOut.stdout
+            | Except.error _ => s!"[Gemini API Direct Execution] Raw: {procOut.stdout}"
+          return { selectedMode := .remoteGemini, modelUsed := config.geminiModelName, content := apiRespMsg, tokensUsed := totalTokens + 32 }
+        else
+          let resp := s!"[Gemini API Error] ExitCode: {procOut.exitCode}, Error: {procOut.stderr}"
+          return { selectedMode := .remoteGemini, modelUsed := config.geminiModelName, content := resp, tokensUsed := totalTokens + 1 }
     | none =>
       let lastMsgText := messages.getLast?.map (fun m => m.content) |>.getD ""
       let tensorOutput ← runGemmaNativeTensor config lastMsgText
@@ -98,7 +131,7 @@ def routeInference (config : RouterConfig) (requestedModel : String) (messages :
       return { selectedMode := .remoteGemini, modelUsed := config.geminiModelName, content := resp, tokensUsed := totalTokens + 20 }
 
 /-- 既存互換用 selectBackend -/
-def selectBackend (config : RouterConfig) (history : List Message) : IO GeminiClient := do
+def selectBackend (config : RouterConfig) (history : List Lyceum.Message) : IO GeminiClient := do
   return GeminiClient.mk "https://generativelanguage.googleapis.com" "" (some config.geminiModelName)
 
 end Koinon.Engine

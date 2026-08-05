@@ -38,6 +38,28 @@ structure UsageInfo where
   total_tokens : Nat := 0
 deriving ToJson, FromJson, Repr, Inhabited
 
+/-- Chat Completion Chunk Delta -/
+structure ChatDelta where
+  role : Option String := none
+  content : Option String := none
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- Chat Chunk Choice -/
+structure ChunkChoice where
+  index : Nat
+  delta : ChatDelta
+  finish_reason : Option String := none
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- OpenAI 互換 Streaming Chat Completion Chunk -/
+structure ChatCompletionChunk where
+  id : String
+  object : String := "chat.completion.chunk"
+  created : Nat
+  model : String
+  choices : List ChunkChoice
+deriving ToJson, FromJson, Repr, Inhabited
+
 /-- OpenAI 互換 Chat Completion レスポンス -/
 structure ChatCompletionResponse where
   id : String

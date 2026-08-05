@@ -1,0 +1,1 @@
+2026-08-05T11:27:52+09:00: Gemini Remote API への物理 HTTP 通信モジュールの組み込み、C/C++ FFI による GGUF ネイティブ推論エンジンの物理結合、および SSE (Server-Sent Events) チャットストリーミングレスポンスの実装。

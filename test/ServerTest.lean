@@ -78,7 +78,15 @@ def testServerRouting : IO UInt32 := do
           if resp.model != "gemini-2.0-flash-exp" then
             IO.eprintln s!"  [FAIL] Expected model 'gemini-2.0-flash-exp', got: '{resp.model}'"
             return 1
-
+  -- 4. Test SSE Streaming Mode (Server-Sent Events: text/event-stream)
+  let streamReqBody := "{\"model\": \"koinon-omni-gemma\", \"stream\": true, \"messages\": [{\"role\": \"user\", \"content\": \"Test SSE Stream\"}]}"
+  let resStream ← handleRoute "POST" "/v1/chat/completions" streamReqBody db
+  if resStream.status != 200 || resStream.contentType != "text/event-stream" then
+    IO.eprintln s!"  [FAIL] SSE Stream expected status 200 and text/event-stream, got: status {resStream.status}, type {resStream.contentType}"
+    return 1
+  if !resStream.body.contains "data: [DONE]" then
+    IO.eprintln s!"  [FAIL] SSE Stream response missing '[DONE]' marker: {resStream.body}"
+    return 1
   -- 5. Test Nomos Theorem Invariants Verification (形式検証定理の不変量チェック)
   let mlaLayer := Lyceum.Inference.MLA.createMLALayer
   let dummyKvCache : Array (Array Float) := #[

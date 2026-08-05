@@ -70,18 +70,37 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
             let retrieved := db.search queryVector 3 0.1
             let ragContextMsg := if retrieved.size > 0 then s!" [RAG Dynamic Vector Matched {retrieved.size} Nodes]" else ""
 
-            let respMsg : ChatMessage := {
-              role := "assistant",
-              content := s!"{infRes.content}{ragContextMsg} (VectorDB total entries: {db.entries.size})"
-            }
-            let resp : ChatCompletionResponse := {
-              id := "chatcmpl-koinon-12345",
-              created := 1700000000,
-              model := infRes.modelUsed,
-              choices := [{ index := 0, message := respMsg }],
-              usage := { prompt_tokens := infRes.tokensUsed / 2, completion_tokens := infRes.tokensUsed / 2, total_tokens := infRes.tokensUsed }
-            }
-            return { status := 200, body := (toJson resp).compress }
+            let isStream := req.stream.getD false
+            if isStream then
+              let chunk1Json := (toJson ({
+                id := "chatcmpl-koinon-stream-1",
+                object := "chat.completion.chunk",
+                created := 1700000000,
+                model := infRes.modelUsed,
+                choices := [{ index := 0, delta := { role := some "assistant", content := some infRes.content }, finish_reason := none }]
+              } : ChatCompletionChunk)).compress
+              let chunk2Json := (toJson ({
+                id := "chatcmpl-koinon-stream-2",
+                object := "chat.completion.chunk",
+                created := 1700000000,
+                model := infRes.modelUsed,
+                choices := [{ index := 0, delta := {}, finish_reason := some "stop" }]
+              } : ChatCompletionChunk)).compress
+              let sseBody := s!"data: {chunk1Json}\n\ndata: {chunk2Json}\n\ndata: [DONE]\n\n"
+              return { status := 200, contentType := "text/event-stream", body := sseBody }
+            else
+              let respMsg : ChatMessage := {
+                role := "assistant",
+                content := s!"{infRes.content}{ragContextMsg} (VectorDB total entries: {db.entries.size})"
+              }
+              let resp : ChatCompletionResponse := {
+                id := "chatcmpl-koinon-12345",
+                created := 1700000000,
+                model := infRes.modelUsed,
+                choices := [{ index := 0, message := respMsg }],
+                usage := { prompt_tokens := infRes.tokensUsed / 2, completion_tokens := infRes.tokensUsed / 2, total_tokens := infRes.tokensUsed }
+              }
+              return { status := 200, body := (toJson resp).compress }
         | Except.error err =>
             return { status := 400, body := s!"\{\"error\": \"Invalid ChatCompletionRequest: {err}\"}" }
     | Except.error err =>
