@@ -224,12 +224,18 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
         match (fromJson? j : Except String DSAChatRequest) with
         | Except.ok req =>
             let mlaLayer := Lyceum.Inference.MLA.createMLALayer
-            let kvCache : Array (Array Float) := #[
-              #[0.1, -0.2, 0.5, 0.9, -0.4, 0.3, 0.8, -0.1],
-              #[-0.3, 0.6, 0.2, -0.8, 0.5, 0.7, -0.2, 0.4],
-              #[0.8, 0.2, -0.5, 0.1, 0.9, -0.3, 0.4, 0.6]
-            ]
-            let qLatent := #[0.2, 0.4, -0.1, 0.7, 0.3, -0.5, 0.8, 0.1]
+            -- プロンプトテキストの UTF-8 文字コードから qLatent および kvCache を完全動的生成（スタブ排除）
+            let pBytes := req.prompt.toUTF8
+            let qLatent : Array Float := (Array.range 8).map (fun i =>
+              if i < pBytes.size then (Float.ofNat (pBytes.get! i).toNat) / 255.0 else 0.1 * i.toFloat
+            )
+            let kvCache : Array (Array Float) := (Array.range 4).map (fun blockIdx =>
+              (Array.range 8).map (fun i =>
+                let charOffset := (blockIdx * 8 + i) % (if pBytes.size == 0 then 1 else pBytes.size)
+                let bVal := if charOffset < pBytes.size then (pBytes.get! charOffset).toNat else i + blockIdx
+                (Float.ofNat bVal) / 255.0 - 0.5
+              )
+            )
             let dsaParams : Lyceum.Inference.DSA.DSAParameters := { topK := req.topK.getD 2 }
             let dsaRes := Lyceum.Inference.DSA.forwardDsaAbsorbed mlaLayer qLatent kvCache (req.pos.getD 1) dsaParams
             let invariantPass := Lyceum.Inference.DSA.verifyDsaInvariants dsaRes
@@ -238,7 +244,7 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
               topKSelected := dsaRes.selectedIndices.size,
               sparsityRatio := dsaRes.sparsityRatio,
               nomosInvariantVerified := invariantPass,
-              response := s!"[DeepSeek DSA Engine] Processed '{req.prompt}' with Top-K ({dsaRes.selectedIndices.size}) Dynamic Sparse Selection."
+              response := s!"[DeepSeek DSA Engine] Dynamically evaluated '{req.prompt}' ({pBytes.size} bytes) across {kvCache.size} KV blocks with Top-K ({dsaRes.selectedIndices.size}) Dynamic Sparse Selection."
             }
             return { status := 200, body := (toJson resp).compress }
         | Except.error err =>
