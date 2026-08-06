@@ -1,0 +1,1 @@
+2026-08-06T09:54:02+09:00: DeepSeek Dynamic Sparse Attention (DSA) モジュールの設計・実装。Lyceum/Inference/DSA.lean の追加、Koinon/Engine/HybridRouter.lean への DSA 透過統合、および ServerTest / Nomos Invariants 検証の実施。

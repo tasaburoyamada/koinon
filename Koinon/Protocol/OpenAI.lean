@@ -154,4 +154,20 @@ structure MLAChatResponse where
   response : String
 deriving ToJson, FromJson, Repr, Inhabited
 
+/-- POST /v1/chat/dsa リクエスト -/
+structure DSAChatRequest where
+  prompt : String
+  topK : Option Nat := none
+  pos : Option Nat := none
+deriving ToJson, FromJson, Repr, Inhabited
+
+/-- POST /v1/chat/dsa レスポンス -/
+structure DSAChatResponse where
+  status : String := "success"
+  topKSelected : Nat
+  sparsityRatio : Float
+  nomosInvariantVerified : Bool
+  response : String
+deriving ToJson, FromJson, Repr, Inhabited
+
 end Koinon.Protocol.OpenAI

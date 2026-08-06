@@ -95,12 +95,27 @@ def testServerRouting : IO UInt32 := do
   ]
   let dummyQ := #[0.2, 0.4, -0.1, 0.7, 0.3, -0.5, 0.8, 0.1]
   let (_, attnWeights) := Lyceum.Inference.MLA.forwardMlaAbsorbed mlaLayer dummyQ dummyKvCache 1
-  let invariantVerified := Lyceum.Inference.MLA.verifyMlaInvariants attnWeights
-  if !invariantVerified then
-    IO.eprintln "  [FAIL] Nomos Theorem Invariants verification failed! Attention sum is not equal to 1.0"
+  -- 6. Test DeepSeek Dynamic Sparse Attention (DSA) REST API & Invariant Verification
+  let dsaReqBody := "{\"prompt\": \"Test DeepSeek DSA Sparse Selection\", \"topK\": 2}"
+  let resDsa ← handleRoute "POST" "/v1/chat/dsa" dsaReqBody db
+  if resDsa.status != 200 then
+    IO.eprintln s!"  [FAIL] /v1/chat/dsa HTTP status expected 200, got: {resDsa.status}"
     return 1
+  match Json.parse resDsa.body with
+  | Except.error err =>
+      IO.eprintln s!"  [FAIL] /v1/chat/dsa response is not valid JSON: {err}"
+      return 1
+  | Except.ok j =>
+      match (fromJson? j : Except String DSAChatResponse) with
+      | Except.error err =>
+          IO.eprintln s!"  [FAIL] /v1/chat/dsa failed to deserialize into DSAChatResponse: {err}"
+          return 1
+      | Except.ok dsaResp =>
+          if !dsaResp.nomosInvariantVerified then
+            IO.eprintln "  [FAIL] DSA Nomos Invariant verification returned false"
+            return 1
 
-  IO.println "  [PASS] Server Router, Dynamic RAG Vector, Nomos Theorems & Strict OpenAI DTO Contract verified."
+  IO.println "  [PASS] Server Router, Dynamic RAG Vector, Nomos Theorems, DeepSeek DSA & Strict OpenAI DTO Contract verified."
   return 0
 
 

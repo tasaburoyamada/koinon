@@ -7,6 +7,7 @@ import Lyceum.Memory.VectorDB
 import Lyceum.Training.BitLinear
 import Lyceum.Training.Distillation
 import Lyceum.Inference.MLA
+import Lyceum.Inference.DSA
 
 namespace Koinon.Server
 
@@ -213,6 +214,35 @@ def handleRoute (method : String) (path : String) (body : String) (db : VectorDB
             return { status := 200, body := (toJson resp).compress }
         | Except.error err =>
             return { status := 400, body := s!"\{\"error\": \"Invalid MLAChatRequest: {err}\"}" }
+    | Except.error err =>
+        return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
+
+  -- 9. POST /v1/chat/dsa (DeepSeek Dynamic Sparse Attention API)
+  else if method == "POST" && path == "/v1/chat/dsa" then
+    match Json.parse body with
+    | Except.ok j =>
+        match (fromJson? j : Except String DSAChatRequest) with
+        | Except.ok req =>
+            let mlaLayer := Lyceum.Inference.MLA.createMLALayer
+            let kvCache : Array (Array Float) := #[
+              #[0.1, -0.2, 0.5, 0.9, -0.4, 0.3, 0.8, -0.1],
+              #[-0.3, 0.6, 0.2, -0.8, 0.5, 0.7, -0.2, 0.4],
+              #[0.8, 0.2, -0.5, 0.1, 0.9, -0.3, 0.4, 0.6]
+            ]
+            let qLatent := #[0.2, 0.4, -0.1, 0.7, 0.3, -0.5, 0.8, 0.1]
+            let dsaParams : Lyceum.Inference.DSA.DSAParameters := { topK := req.topK.getD 2 }
+            let dsaRes := Lyceum.Inference.DSA.forwardDsaAbsorbed mlaLayer qLatent kvCache (req.pos.getD 1) dsaParams
+            let invariantPass := Lyceum.Inference.DSA.verifyDsaInvariants dsaRes
+            let resp : DSAChatResponse := {
+              status := "success",
+              topKSelected := dsaRes.selectedIndices.size,
+              sparsityRatio := dsaRes.sparsityRatio,
+              nomosInvariantVerified := invariantPass,
+              response := s!"[DeepSeek DSA Engine] Processed '{req.prompt}' with Top-K ({dsaRes.selectedIndices.size}) Dynamic Sparse Selection."
+            }
+            return { status := 200, body := (toJson resp).compress }
+        | Except.error err =>
+            return { status := 400, body := s!"\{\"error\": \"Invalid DSAChatRequest: {err}\"}" }
     | Except.error err =>
         return { status := 400, body := s!"\{\"error\": \"Invalid JSON: {err}\"}" }
 
