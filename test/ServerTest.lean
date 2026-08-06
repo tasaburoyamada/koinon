@@ -115,7 +115,18 @@ def testServerRouting : IO UInt32 := do
             IO.eprintln "  [FAIL] DSA Nomos Invariant verification returned false"
             return 1
 
-  IO.println "  [PASS] Server Router, Dynamic RAG Vector, Nomos Theorems, DeepSeek DSA & Strict OpenAI DTO Contract verified."
+  -- 7. Test HybridRouter DSA Auto-routing on Long-Context Chat Completion
+  let longPrompt := "Long context message repeating... " ++ (String.mk (List.replicate 300 'A'))
+  let longChatReq := s!"\{\"model\": \"koinon-omni-gemma\", \"messages\": [\{\"role\": \"user\", \"content\": \"{longPrompt}\"}]}"
+  let resLongChat ← handleRoute "POST" "/v1/chat/completions" longChatReq db
+  if resLongChat.status != 200 then
+    IO.eprintln s!"  [FAIL] Long-context /v1/chat/completions status expected 200, got {resLongChat.status}"
+    return 1
+  if !resLongChat.body.contains "[DeepSeek DSA Local Pipeline]" then
+    IO.eprintln s!"  [FAIL] Long-context chat completion did not auto-route to DSA pipeline: {resLongChat.body}"
+    return 1
+
+  IO.println "  [PASS] Server Router, Dynamic RAG Vector, Nomos Theorems, DeepSeek DSA Auto-Routing & Strict OpenAI DTO Contract verified."
   return 0
 
 

@@ -1,0 +1,1 @@
+2026-08-06T10:20:45+09:00: Koinon.Engine.HybridRouter への DeepSeek Dynamic Sparse Attention (DSA) 自動ルーティング統合。ロングコンテキスト（推定トークン数高評価時）における DSA 駆動ローカルテンソル推論の自動選択の実装。
